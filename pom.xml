@@ -83,6 +83,18 @@
             <artifactId>druid</artifactId>
             <version>1.2.8</version>
         </dependency>
+        <!--生成自定义元数据项信息-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+        </dependency>
+
+        <!--微信支付的sdk-->
+        <dependency>
+            <groupId>com.github.wechatpay-apiv3</groupId>
+            <artifactId>wechatpay-apache-httpclient</artifactId>
+            <version>0.3.0</version>
+        </dependency>
 
     </dependencies>
 
