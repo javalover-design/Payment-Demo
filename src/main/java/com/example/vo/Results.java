@@ -1,6 +1,7 @@
 package com.example.vo;
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,7 +12,7 @@ import java.util.Map;
  * 即该类设置了需要交给前端的数据
  */
 @Data
-
+@Accessors(chain = true)
 public class Results {
 
     /**

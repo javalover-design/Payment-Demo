@@ -96,6 +96,12 @@
             <version>0.3.0</version>
         </dependency>
 
+        <!--JSON数据处理-->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
