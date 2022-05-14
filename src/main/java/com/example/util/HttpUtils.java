@@ -5,6 +5,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 
+/**
+ * @author lambda
+ */
 public class HttpUtils {
 
     /**

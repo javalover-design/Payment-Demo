@@ -16,6 +16,7 @@ import java.util.List;
 
 /**
  * @author lambda
+ *
  */
 @CrossOrigin //开放前端的跨域访问
 @Api(tags = "商品管理")

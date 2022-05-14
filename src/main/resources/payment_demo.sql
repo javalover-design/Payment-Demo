@@ -1,6 +1,7 @@
 USE `payment_demo`;
 
-/*Table structure for table `t_order_info` */
+/*Table structure for table `t_order_info`
+  */
 
 CREATE TABLE `t_order_info` (
   `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT COMMENT '订单id',

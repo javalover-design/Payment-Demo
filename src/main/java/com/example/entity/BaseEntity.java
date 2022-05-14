@@ -8,6 +8,7 @@ import java.util.Date;
 
 /**
  * @author lambda
+ *
  */
 @Data
 public class BaseEntity {

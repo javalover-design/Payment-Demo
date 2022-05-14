@@ -27,6 +27,7 @@ import java.util.Map;
 
 /**
  * http请求客户端
+ * @author lambda
  */
 public class HttpClientUtils {
 	private String url;

@@ -20,6 +20,7 @@ import java.security.PrivateKey;
 
 /**
  * @author lambda
+ *
  */
 @Configuration
 @ConfigurationProperties(prefix = "wxpay")

@@ -10,6 +10,7 @@ import java.util.Map;
  * @author lambda
  * 该类用于前后端交互，为前端设置一个标准的响应结果
  * 即该类设置了需要交给前端的数据
+ *
  */
 @Data
 @Accessors(chain = true)

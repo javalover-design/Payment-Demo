@@ -6,6 +6,7 @@ import java.util.Map;
  * The interface Wx pay service.
  *
  * @author lambda
+ *
  */
 public interface WxPayService {
 

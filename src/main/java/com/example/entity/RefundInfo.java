@@ -5,6 +5,7 @@ import lombok.Data;
 
 /**
  * @author lambda
+ *
  */
 @Data
 @TableName("t_refund_info")

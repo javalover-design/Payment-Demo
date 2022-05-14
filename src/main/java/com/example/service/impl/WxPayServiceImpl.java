@@ -2,13 +2,13 @@ package com.example.service.impl;
 
 import com.example.config.WxPayConfig;
 import com.example.entity.OrderInfo;
-import com.example.enums.OrderStatus;
 import com.example.enums.StatusCode;
 import com.example.enums.wxpay.WxApiType;
 import com.example.enums.wxpay.WxNotifyType;
+import com.example.service.OrderInfoService;
 import com.example.service.WxPayService;
-import com.example.util.OrderNoUtils;
 import com.google.gson.Gson;
+import com.mysql.cj.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -24,6 +24,7 @@ import java.util.Map;
 
 /**
  * @author lambda
+ *
  */
 @Service
 @Slf4j
@@ -37,6 +38,9 @@ public class WxPayServiceImpl implements WxPayService {
     @Resource
     private CloseableHttpClient httpClient;
 
+    @Resource
+    private OrderInfoService orderInfoService;
+
     /**
      * 该方法用于处理支付业务
      * 创建订单，调用native支付接口
@@ -48,13 +52,27 @@ public class WxPayServiceImpl implements WxPayService {
         log.info("生成订单");
 
         //生成订单
-        OrderInfo orderInfo = new OrderInfo();
-        orderInfo.setTitle("test");
-        //订单号
-        orderInfo.setOrderNo(OrderNoUtils.getOrderNo());
-        orderInfo.setTotalFee(1);
-        orderInfo.setProductId(productId);
-        orderInfo.setOrderStatus(OrderStatus.NOTPAY.getType());
+        //OrderInfo orderInfo = new OrderInfo();
+        //orderInfo.setTitle("test");
+        ////订单号
+        //orderInfo.setOrderNo(OrderNoUtils.getOrderNo());
+        //orderInfo.setTotalFee(1);
+        //orderInfo.setProductId(productId);
+        //orderInfo.setOrderStatus(OrderStatus.NOTPAY.getType());
+        OrderInfo orderInfo = orderInfoService.createOrderByProductId(productId);
+
+        //此处进行判断，如果codeUrl与订单信息都不为空，则直接将原来的信息返回即可
+        String codeUrl = orderInfo.getCodeUrl();
+
+        if (orderInfo !=null && !StringUtils.isEmptyOrWhitespaceOnly(codeUrl)){
+            log.info("二维码已经保存了.......");
+            //使用map将所需要的信息返回
+            Map<String, Object> codeUrlAndOrderNoMap=new HashMap<String, Object>();
+            codeUrlAndOrderNoMap.put("codeUrl",codeUrl);
+            codeUrlAndOrderNoMap.put("orderNo",orderInfo.getOrderNo());
+
+            return codeUrlAndOrderNoMap;
+        }
 
 
         log.info("调用统一下单API");
@@ -114,12 +132,16 @@ public class WxPayServiceImpl implements WxPayService {
             Map<String, String> resultMap = gson.fromJson(bodyAsString, HashMap.class);
 
             //从响应结果中解析二维码
-           String code_url = resultMap.get("code_url");
+          codeUrl = resultMap.get("code_url");
+           //保存二维码
+            String orderNo = orderInfo.getOrderNo();
+            orderInfoService.saveCodeUrl(orderNo,codeUrl);
 
-           //使用map将所需要的信息返回
+
+            //使用map将所需要的信息返回
             Map<String, Object> codeUrlAndOrderNoMap=new HashMap<String, Object>();
-            codeUrlAndOrderNoMap.put("codeUrl",code_url);
-            codeUrlAndOrderNoMap.put("orderInfoNo",orderInfo.getOrderNo());
+            codeUrlAndOrderNoMap.put("codeUrl",codeUrl);
+            codeUrlAndOrderNoMap.put("orderNo",orderInfo.getOrderNo());
 
             return codeUrlAndOrderNoMap;
             //将结果返回

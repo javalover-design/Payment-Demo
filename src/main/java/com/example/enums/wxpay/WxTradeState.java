@@ -3,6 +3,9 @@ package com.example.enums.wxpay;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * @author lambda
+ */
 @AllArgsConstructor
 @Getter
 public enum WxTradeState {

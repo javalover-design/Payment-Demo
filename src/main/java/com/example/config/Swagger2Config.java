@@ -9,6 +9,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 /**
  * @author lambda
+ *
  */
 @Configuration
 @EnableSwagger2

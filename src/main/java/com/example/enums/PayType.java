@@ -3,6 +3,10 @@ package com.example.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+/**
+ * @author lambda
+ */
+
 @AllArgsConstructor
 @Getter
 public enum PayType {

@@ -5,6 +5,7 @@ import lombok.Data;
 
 /**
  * @author lambda
+ *
  */
 @Data
 @TableName("t_order_info")  //表示指定表名

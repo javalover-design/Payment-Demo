@@ -14,7 +14,9 @@ import java.time.Instant;
 
 import static com.wechat.pay.contrib.apache.httpclient.constant.WechatPayHttpHeaders.*;
 
-
+/**
+ * @author lambda
+ */
 public class WechatPay2ValidatorForRequest{
 
     protected static final Logger log = LoggerFactory.getLogger(WechatPay2ValidatorForRequest.class);

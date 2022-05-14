@@ -16,7 +16,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/payment_demo?CharacterEncoding=utf87serverTimeZone=GMT%2B8&useUnicode=true
     username: root
-    password: 123456
+    password: 12345
     type: com.alibaba.druid.pool.DruidDataSource
 
 
@@ -25,3 +25,6 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #sql日志
   mapper-locations: classpath:com/example/mapper/xml/*.xml #配置xml文件的地址
 
+logging:
+  level:
+    root: info

@@ -12,6 +12,7 @@ import java.util.Map;
 
 /**
  * @author lambda
+ *
  */
 @CrossOrigin //跨域注解
 @RestController
@@ -33,7 +34,7 @@ public class WxPayController {
      */
     @ApiOperation("调用统一支付接口，生成二维码")
     @PostMapping("native/{productId}")
-    public Results NativePay(@PathVariable Long productId) throws Exception {
+    public Results nativePay(@PathVariable Long productId) throws Exception {
         log.info("发起支付请求.......");
 
         //调用支付方法后，返回微信二维码链接以及订单号

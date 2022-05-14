@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  * @author lambda
+ *
  */
 
 @Configuration //定义为配置类
