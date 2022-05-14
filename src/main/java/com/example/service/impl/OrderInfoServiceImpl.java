@@ -12,6 +12,7 @@ import com.example.util.OrderNoUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
  * @author lambda
@@ -72,6 +73,21 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
 
     }
+
+    /**
+     * 创建查询对象，并设置查询条件，执行查询返回集合
+     * @return
+     */
+    @Override
+    public List<OrderInfo> listOrderByCreateTimeDesc() {
+        //创建查询对象
+        QueryWrapper<OrderInfo> orderInfoQueryWrapper = new QueryWrapper<>();
+        //组装查询条件
+        orderInfoQueryWrapper.orderByDesc("create_time");
+        //使用持久层对象执行查询操作
+        return orderInfoMapper.selectList(orderInfoQueryWrapper);
+    }
+
 
     /**
      * 该方法用于获取用户未支付的订单(由于只在该类中使用，所以定义为私有方法)
