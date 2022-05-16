@@ -28,24 +28,49 @@ public class WechatPay2ValidatorForRequest{
     protected final String body;
     protected final String requestId;
 
+    /**
+     *
+     * @param verifier
+     * @param body
+     * @param requestId
+     */
     public WechatPay2ValidatorForRequest(Verifier verifier, String body, String requestId) {
         this.verifier = verifier;
         this.body = body;
         this.requestId = requestId;
     }
 
+    /**
+     *
+     * @param message
+     * @param args
+     * @return
+     */
     protected static IllegalArgumentException parameterError(String message, Object... args) {
         message = String.format(message, args);
         return new IllegalArgumentException("parameter error: " + message);
     }
 
+    /**
+     *
+     * @param message
+     * @param args
+     * @return
+     */
     protected static IllegalArgumentException verifyFail(String message, Object... args) {
         message = String.format(message, args);
         return new IllegalArgumentException("signature verify fail: " + message);
     }
 
+    /**
+     *
+     * @param request
+     * @return
+     * @throws IOException
+     */
     public final boolean validate(HttpServletRequest request) throws IOException {
         try {
+            //处理请求参数
             validateParameters(request);
 
             String message = buildMessage(request);
@@ -64,6 +89,10 @@ public class WechatPay2ValidatorForRequest{
         return true;
     }
 
+    /**
+     *
+     * @param request
+     */
     protected final void validateParameters(HttpServletRequest request) {
 
         // NOTE: ensure HEADER_WECHAT_PAY_TIMESTAMP at last
@@ -89,6 +118,12 @@ public class WechatPay2ValidatorForRequest{
         }
     }
 
+    /**
+     *
+     * @param request
+     * @return
+     * @throws IOException
+     */
     protected final String buildMessage(HttpServletRequest request) throws IOException {
         String timestamp = request.getHeader(WECHAT_PAY_TIMESTAMP);
         String nonce = request.getHeader(WECHAT_PAY_NONCE);
