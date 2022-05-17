@@ -103,6 +103,7 @@ public class WxPayController {
         }
 
         //TODO：订单处理
+        wxPayService.processOrder(bodyMap);
 
         //返回成功的应答
         response.setStatus(StatusCode.SUCCESS.getCode());

@@ -9,6 +9,8 @@ import com.example.service.OrderInfoService;
 import com.example.service.WxPayService;
 import com.google.gson.Gson;
 import com.mysql.cj.util.StringUtils;
+import com.wechat.pay.contrib.apache.httpclient.util.AesUtil;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -150,4 +154,37 @@ public class WxPayServiceImpl implements WxPayService {
         }
 
     }
+
+    @SneakyThrows
+    @Override
+    public void processOrder(Map<String, Object> bodyMap) throws GeneralSecurityException {
+            log.info("订单处理......");
+            String plainText=decryptFromResource(bodyMap);
+    }
+
+    /**
+     * 对称解密处理
+     * @param bodyMap
+     * @return
+     */
+    private String decryptFromResource(Map<String, Object> bodyMap) throws GeneralSecurityException {
+            log.info("密文解密.....");
+            //从请求体中获取通知数据
+       Map<String, String> resourceMap= (Map<String, String>)bodyMap.get("resource");
+       //resourceMap中获取数据密文
+        String ciphertext = resourceMap.get("ciphertext");
+        //获取随机串
+        String nonce = resourceMap.get("nonce");
+        //获取附加数据
+        String associatedData = resourceMap.get("associated_data");
+        //创建密文解密工具,构造参数中需要密钥
+        AesUtil aesUtil = new AesUtil(wxPayConfig.getApiV3Key().getBytes(StandardCharsets.UTF_8));
+        //具体解密,得到明文数据
+        String plainText = aesUtil.decryptToString(associatedData.getBytes(StandardCharsets.UTF_8), nonce.getBytes(StandardCharsets.UTF_8), ciphertext);
+        log.info(plainText);
+        log.info("密文"+ciphertext);
+        return plainText;
+    }
+
+
 }
