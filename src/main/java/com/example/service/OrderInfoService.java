@@ -2,13 +2,14 @@ package com.example.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.example.entity.OrderInfo;
+import com.example.enums.OrderStatus;
 
 import java.util.List;
 
 /**
  * The interface Order info service.
  *
- * @author lambda  同样的OrderInfoService也不需要书写任何方法，所有的增删该查分页等操作都是由IService完成 并且继承的IService接口的泛型是对应的实体类
+ * @author lambda 同样的OrderInfoService也不需要书写任何方法，所有的增删该查分页等操作都是由IService完成 并且继承的IService接口的泛型是对应的实体类
  */
 public interface OrderInfoService  extends IService<OrderInfo> {
 
@@ -32,8 +33,27 @@ public interface OrderInfoService  extends IService<OrderInfo> {
 
     /**
      * List order by create time desc list.
-     *按创建时间降序排序订单信息
+     * 按创建时间降序排序订单信息
+     *
      * @return the list
      */
     List<OrderInfo> listOrderByCreateTimeDesc();
+
+    /**
+     * Update status by order no.
+     * 根据订单号更新数据库中的订单状态
+     *
+     * @param orderNo     the order no
+     * @param orderStatus the order status
+     */
+    void updateStatusByOrderNo(String orderNo, OrderStatus orderStatus);
+
+    /**
+     * Gets order status.
+     *获取订单状态
+     * @param orderNo the order no
+     * @return the order status
+     */
+    String getOrderStatus(String orderNo);
+
 }

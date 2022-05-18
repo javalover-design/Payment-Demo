@@ -2,10 +2,12 @@ package com.example.service.impl;
 
 import com.example.config.WxPayConfig;
 import com.example.entity.OrderInfo;
+import com.example.enums.OrderStatus;
 import com.example.enums.StatusCode;
 import com.example.enums.wxpay.WxApiType;
 import com.example.enums.wxpay.WxNotifyType;
 import com.example.service.OrderInfoService;
+import com.example.service.PaymentInfoService;
 import com.example.service.WxPayService;
 import com.google.gson.Gson;
 import com.mysql.cj.util.StringUtils;
@@ -25,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author lambda
@@ -34,16 +37,24 @@ import java.util.Map;
 @Slf4j
 public class WxPayServiceImpl implements WxPayService {
 
-    //注入参数信息
+    /**注入参数信息*/
     @Resource
     private WxPayConfig wxPayConfig;
 
-    //注入http客户端参数，用于更新签名证书并完成请求
+    /**注入http客户端参数，用于更新签名证书并完成请求*/
     @Resource
     private CloseableHttpClient httpClient;
 
     @Resource
     private OrderInfoService orderInfoService;
+
+    @Resource
+    private PaymentInfoService paymentInfoService;
+
+    /**
+     * 创建一把可重入锁，用于数据的所定
+     */
+    private final ReentrantLock lock=new ReentrantLock();
 
     /**
      * 该方法用于处理支付业务
@@ -159,7 +170,38 @@ public class WxPayServiceImpl implements WxPayService {
     @Override
     public void processOrder(Map<String, Object> bodyMap) throws GeneralSecurityException {
             log.info("订单处理......");
+            //获取到明文数据，进行订单处理
             String plainText=decryptFromResource(bodyMap);
+            //此时明文仍旧是字符串形式，需要转换成map
+        Gson gson = new Gson();
+        HashMap plainTextMap = gson.fromJson(plainText, HashMap.class);
+        //获取订单号
+        String orderNo = (String) plainTextMap.get("out_trade_no");
+
+        if (lock.tryLock()) {
+            //进行尝试获取锁操作，成功获取则立即返回true，不会造成线程阻塞（synchronized会造成线程等待）
+
+            try {
+
+
+                //处理重复订单（如果商户没有反馈给微信信息，微信会重复发送通知）
+                //根据订单号获取订单状态
+                String orderStatus = orderInfoService.getOrderStatus(orderNo);
+                //对订单状态进行判断，如果是支付了就直接返回，不处理
+                if (!OrderStatus.NOTPAY.getType().equals(orderStatus)) {
+                    return;
+                }
+
+                //更新订单状态（针对数据库）,需要创建一个方法
+                orderInfoService.updateStatusByOrderNo(orderNo, OrderStatus.SUCCESS);
+                //记录支付日志,需要使用到PaymentInfoService类，专门记录支付日志信息
+                paymentInfoService.createPaymentInfo(plainText);
+
+            }finally {
+                //释放锁
+                lock.unlock();
+            }
+        }
     }
 
     /**

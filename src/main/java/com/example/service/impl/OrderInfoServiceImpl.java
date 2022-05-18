@@ -9,6 +9,7 @@ import com.example.mapper.OrderInfoMapper;
 import com.example.mapper.ProductMapper;
 import com.example.service.OrderInfoService;
 import com.example.util.OrderNoUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -22,6 +23,7 @@ import java.util.List;
  *
  */
 @Service
+@Slf4j
 public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo> implements OrderInfoService {
 
     @Resource
@@ -86,6 +88,49 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfoQueryWrapper.orderByDesc("create_time");
         //使用持久层对象执行查询操作
         return orderInfoMapper.selectList(orderInfoQueryWrapper);
+    }
+
+
+    /**
+     * 此方法用于根据订单编号来更新数据库中的订单状态
+     * @param orderNo 订单编号
+     * @param orderStatus 成功响应码
+     */
+    @Override
+    public void updateStatusByOrderNo(String orderNo, OrderStatus orderStatus) {
+        log.info("更新数据库中的订单状态=======>"+orderStatus.getType());
+        //创建一个查询条件，主要针对OrderInfo订单信息
+        QueryWrapper<OrderInfo> orderInfoQueryWrapper = new QueryWrapper<>();
+        //编写查询条件
+        orderInfoQueryWrapper.eq("order_no",orderNo);
+        //创建一个订单信息对象
+        OrderInfo orderInfo = new OrderInfo();
+        //设置要更新的订单状态
+        orderInfo.setOrderStatus(orderStatus.getType());
+        //执行更新操作
+        orderInfoMapper.update(orderInfo,orderInfoQueryWrapper);
+
+
+    }
+
+    /**
+     * 根据订单号获取订单状态
+     * @param orderNo the order no
+     * @return
+     */
+    @Override
+    public String getOrderStatus(String orderNo) {
+        //进行查询订单的操作
+        QueryWrapper<OrderInfo> orderInfoQueryWrapper = new QueryWrapper<>();
+        //构造查询条件
+        orderInfoQueryWrapper.eq("order_no",orderNo);
+        //根据订单号查询的订单信息必须是唯一的，因此使用selectOne
+        OrderInfo orderInfo = orderInfoMapper.selectOne(orderInfoQueryWrapper);
+        //判断订单信息是否为空，如果为空，直接将订单状态设置为null
+        if (orderInfo==null){
+            return null;
+        }
+        return orderInfo.getOrderStatus();
     }
 
 

@@ -1,9 +1,15 @@
 package com.example.service;
 
 /**
- * @author lambda
+ * The interface Payment info service.
  *
+ * @author lambda
  */
-
 public interface PaymentInfoService {
+    /**
+     * Create payment info.
+     *
+     * @param plainText the plain text
+     */
+    void createPaymentInfo(String plainText);
 }
