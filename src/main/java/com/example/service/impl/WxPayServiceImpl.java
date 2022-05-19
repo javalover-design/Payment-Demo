@@ -204,6 +204,75 @@ public class WxPayServiceImpl implements WxPayService {
         }
     }
 
+
+    /**
+     * 用户取消订单功能
+     * @param orderNo
+     */
+    @Override
+    public void cancelOrder(String orderNo) throws IOException {
+        log.info("用户取消订单....");
+        //调用微信支付的关单接口（新建该类的私有方法，进行关单操作）
+        this.closeOrder(orderNo);
+
+        //更新商户端的订单状态(设置为用户已经取消)
+        orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.CANCEL);
+
+
+
+    }
+
+    /**
+     * 关单接口的调用
+     * @param orderNo
+     */
+    private void closeOrder(String orderNo) throws IOException {
+        log.info("关单接口调用,订单号====》{}",orderNo);
+        //创建远程请求对象
+        //从枚举中获取对应的关单地址，并且使用orderNo替换占位符
+        String closeUrl = String.format(WxApiType.CLOSE_ORDER_BY_NO.getType(), orderNo);
+        //获取完整的地址(微信地址+关单地址)
+        String url=wxPayConfig.getDomain().concat(closeUrl);
+        //使用url创建请求
+        HttpPost httpPost = new HttpPost(url);
+        //组装json请求体
+        Gson gson = new Gson();
+        Map<String, String> paramMap = new HashMap<>();
+        //设置参数
+        paramMap.put("mchid",wxPayConfig.getMchId());
+        //将需要的参数组装成json
+        String jsonParams = gson.toJson(paramMap);
+        log.info("请求参数-----》{}",jsonParams);
+        //将请求参数设置到请求对象中
+        StringEntity stringEntity = new StringEntity(jsonParams, StandardCharsets.UTF_8);
+        stringEntity.setContentType("application/json");
+        httpPost.setEntity(stringEntity);
+        httpPost.setHeader("Accept","application/json");
+
+        //完成签名并执行请求
+        CloseableHttpResponse response = httpClient.execute(httpPost);
+        try {
+
+            //获取请求的响应状态码
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == StatusCode.SUCCESS.getCode()) {
+                //处理成功
+                log.info("success,return body=" );
+            } else if (statusCode == StatusCode.SUCCESS_NOT_BODY.getCode()) {
+                //处理成功但是没有返回体
+                log.info("success");
+
+            } else {
+                log.info("failed,resp code=" + statusCode + ",return Body" );
+                throw new IOException("Request failed");
+            }
+        }finally {
+            response.close();
+        }
+
+
+    }
+
     /**
      * 对称解密处理
      * @param bodyMap

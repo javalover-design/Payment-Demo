@@ -18,6 +18,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,7 +76,7 @@ public class WxPayController {
      * 微信官方要求通知使用POST方式接收
      */
     @PostMapping("/native/notify")
-    public String nativeNotify(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public String nativeNotify(HttpServletRequest request, HttpServletResponse response) throws IOException, GeneralSecurityException {
         Gson gson = new Gson();
         //设置客户应答微信平台的应答对象
         Map<String, String> responseMap=new HashMap<>();
@@ -112,5 +113,21 @@ public class WxPayController {
         //客户成功应答的信息转换成JSON数据传递给微信支付平台
         return gson.toJson(responseMap);
 
+    }
+
+    /**
+     * 取消订单的接口
+     * @param orderNo
+     * @return
+     */
+    @PostMapping("/cancel/orderNo")
+    public Results cancel(@PathVariable String orderNo) throws IOException {
+        log.info("取消订单........");
+
+        //调用wxPayService取消订单的方法
+        wxPayService.cancelOrder(orderNo);
+
+        //为前端返回成功提示
+        return Results.returnOk().setMessage("订单已取消....");
     }
 }

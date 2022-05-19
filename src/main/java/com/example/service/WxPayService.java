@@ -1,5 +1,6 @@
 package com.example.service;
 
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 
@@ -22,8 +23,17 @@ public interface WxPayService {
 
     /**
      * Process order.
+     * 处理订单
      *
      * @param bodyMap the body map
+     * @throws GeneralSecurityException the general security exception
      */
     void processOrder(Map<String, Object> bodyMap) throws GeneralSecurityException;
+
+    /**
+     * Cancel order.
+     * 取消订单
+     * @param orderNo the order no
+     */
+    void cancelOrder(String orderNo) throws IOException;
 }
