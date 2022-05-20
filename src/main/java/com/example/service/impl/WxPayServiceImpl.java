@@ -6,6 +6,7 @@ import com.example.enums.OrderStatus;
 import com.example.enums.StatusCode;
 import com.example.enums.wxpay.WxApiType;
 import com.example.enums.wxpay.WxNotifyType;
+import com.example.enums.wxpay.WxTradeState;
 import com.example.service.OrderInfoService;
 import com.example.service.PaymentInfoService;
 import com.example.service.WxPayService;
@@ -15,6 +16,7 @@ import com.wechat.pay.contrib.apache.httpclient.util.AesUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.rmi.RemoteException;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
@@ -218,6 +221,89 @@ public class WxPayServiceImpl implements WxPayService {
         //更新商户端的订单状态(设置为用户已经取消)
         orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.CANCEL);
 
+
+
+    }
+
+    /**
+     *
+     * @param orderNo 要查询的订单号
+     * @return 返回查询订单结果
+     * @throws IOException IO流异常
+     */
+    @Override
+    public String queryOrder(String orderNo) throws IOException {
+        log.info("查询订单接口调用---->{}",orderNo);
+        //组装查询订单的url地址,此处仍旧需要使用orderNo来替换占位符
+        String url=String.format(WxApiType.ORDER_QUERY_BY_NO.getType(),orderNo);
+        //组装，需要将微信地址带上并以商户号进行拼接
+        url=wxPayConfig.getDomain().concat(url).concat("?mchid=").concat(wxPayConfig.getMchId());
+        //创建一个请求对象
+        HttpGet httpGet = new HttpGet(url);
+        //由于是get请求类型，只需要设置请求头即可
+        httpGet.setHeader("Accept","application/json");
+
+        //执行请求发送
+        CloseableHttpResponse response = httpClient.execute(httpGet);
+
+        //处理请求结果
+        try {
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            //获取请求响应码
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode==StatusCode.SUCCESS.getCode()){
+                log.info("成功，返回结果："+bodyAsString);
+            }else if (statusCode==StatusCode.SUCCESS_NOT_BODY.getCode()){
+                log.info("成功，但是无返回结果");
+            }else {
+                log.info("查询订单失败，返回结果"+statusCode);
+                throw new RemoteException("请求失败.....");
+            }
+            return bodyAsString;
+
+        }finally {
+            response.close();
+        }
+
+    }
+
+    /**
+     * 根据订单号调用微信支付查单接口，核实订单状态
+     * 如果订单已经支付，则更新商户端的订单状态
+     * 如果订单未支付，则关闭订单，并更新商户端订单状态
+     * @param orderNo 订单号
+     * @throws IOException IO异常
+     */
+    @Override
+    public void checkOrderStatus(String orderNo) throws IOException {
+        log.info("根据订单号查询订单状态---》{}",orderNo);
+        String result = queryOrder(orderNo);
+        //json形式的订单查询结果转换成hashMap
+        Gson gson = new Gson();
+        Map orderInfoMap = gson.fromJson(result, HashMap.class);
+        //获取微信端的订单状态
+        Object tradeState = orderInfoMap.get("trade_state");
+        //判断订单状态
+        if (WxTradeState.SUCCESS.getType().equals(tradeState)){
+            //如果订单已经支付成功
+            log.warn("核实订单已经支付.....{}",orderNo);
+            //确认支付之后更新本地的订单状态
+            orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.SUCCESS);
+
+            //记录支付日志，需要传递微信通知明文信息，并且明文信息通知与查询订单返回的信息是一致的
+            paymentInfoService.createPaymentInfo(result);
+
+        }
+        if(WxTradeState.NOTPAY.getType().equals(tradeState)){
+            //此时表明微信端显示未支付
+            log.warn("核实订单未支付---》{}",orderNo);
+            //如果订单未支付，调用微信关单接口
+            this.closeOrder(orderNo);
+
+            //更新本地订单状态
+            orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.CLOSED);
+
+        }
 
 
     }

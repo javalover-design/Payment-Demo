@@ -130,4 +130,18 @@ public class WxPayController {
         //为前端返回成功提示
         return Results.returnOk().setMessage("订单已取消....");
     }
+
+
+    /**
+     * 此处设计查询订单接口
+     * @param orderNo 订单号
+     * @return 查询结果
+     */
+    @GetMapping("/query/{orderNo}")
+    public Results queryOrder(@PathVariable String orderNo) throws IOException {
+        log.info("查询订单");
+        //调用查询订单方法，传入订单号，返回一个json字符串
+        String result=wxPayService.queryOrder(orderNo);
+        return Results.returnOk().setMessage("查询成功").returnData("result",result);
+    }
 }

@@ -33,7 +33,27 @@ public interface WxPayService {
     /**
      * Cancel order.
      * 取消订单
+     *
      * @param orderNo the order no
+     * @throws IOException the io exception
      */
     void cancelOrder(String orderNo) throws IOException;
+
+    /**
+     * Query order string.
+     * 查询订单方法
+     *
+     * @param orderNo the order no
+     * @return the string
+     * @throws IOException the io exception
+     */
+    String queryOrder(String orderNo) throws IOException;
+
+    /**
+     * Check order status.
+     *  核实订单状态
+     * @param orderNo the order no
+     * @throws IOException the io exception
+     */
+    void checkOrderStatus(String orderNo) throws IOException;
 }

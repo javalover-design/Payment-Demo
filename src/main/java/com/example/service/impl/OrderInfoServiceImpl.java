@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -131,6 +133,26 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
             return null;
         }
         return orderInfo.getOrderStatus();
+    }
+
+    /**
+     *查询超过指定时间未支付的订单集合
+     * @param minutes the
+     * @return
+     */
+    @Override
+    public List<OrderInfo> getNoPayOrderByDuration(int minutes) {
+        //创建一个时间实例，减去超时时间的时间实例，与订单的创建时间相比
+        Instant minus = Instant.now().minus(Duration.ofMinutes(minutes));
+
+        //创建一个查询订单对象
+        QueryWrapper<OrderInfo> orderInfoQueryWrapper = new QueryWrapper<>();
+        //组装订单的查询信息，首先是未支付
+        orderInfoQueryWrapper.eq("order_status",OrderStatus.NOTPAY.getType());
+        //如果当前时间减去超时时间的时间值比创建时间晚，则说明已经超时了
+        orderInfoQueryWrapper.le("create_time",minus);
+        //最后将查询的结果返回
+        return orderInfoMapper.selectList(orderInfoQueryWrapper);
     }
 
 
