@@ -144,4 +144,34 @@ public class WxPayController {
         String result=wxPayService.queryOrder(orderNo);
         return Results.returnOk().setMessage("查询成功").returnData("result",result);
     }
+
+
+    /**
+     * 退款接口
+     * @param orderNo 订单号
+     * @param reason 退款通知
+     * @return 返回结果对象
+     */
+    @ApiOperation("申请退款")
+    @PostMapping("/refunds/{orderNo}/{reason}")
+    public Results refunds(@PathVariable String orderNo,@PathVariable String reason) throws IOException {
+        log.info("顾客申请退款.....");
+        wxPayService.refund(orderNo,reason);
+        return Results.returnOk();
+
+
+    }
+
+    /**
+     * 查询退款
+     * @param refundNo 退款单编号
+     * @return 退款查询信息
+     */
+    @ApiOperation("查询退款")
+    @GetMapping("/query-refund/{refundNo}")
+    public Results queryRefund(@PathVariable String refundNo) throws IOException {
+        log.info("查询退款单.......");
+        String result=wxPayService.queryRefund(refundNo);
+        return Results.returnOk().returnData("result",result).setMessage("退款成功");
+    }
 }

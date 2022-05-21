@@ -51,9 +51,30 @@ public interface WxPayService {
 
     /**
      * Check order status.
-     *  核实订单状态
+     * 核实订单状态
+     *
      * @param orderNo the order no
      * @throws IOException the io exception
      */
     void checkOrderStatus(String orderNo) throws IOException;
+
+    /**
+     * Refund.
+     * 退款方法
+     *
+     * @param orderNo the order no
+     * @param reason  the reason
+     * @throws IOException the io exception
+     */
+    void refund(String orderNo, String reason) throws IOException;
+
+    /**
+     * Query refund string.
+     * 查询退款结果
+     * @param refundNo the refund no
+     * @return the string
+     * @throws IOException the io exception
+     */
+    String queryRefund(String refundNo) throws IOException;
+
 }

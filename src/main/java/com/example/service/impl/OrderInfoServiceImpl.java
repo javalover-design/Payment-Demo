@@ -34,6 +34,11 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
     @Resource
     private OrderInfoMapper orderInfoMapper;
 
+    /**
+     * 根据产品id创建订单信息
+     * @param productId the product id
+     * @return 订单信息
+     */
     @Override
     public OrderInfo createOrderByProductId(Long productId) {
 
@@ -80,7 +85,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
 
     /**
      * 创建查询对象，并设置查询条件，执行查询返回集合
-     * @return
+     * @return OrderInfo
      */
     @Override
     public List<OrderInfo> listOrderByCreateTimeDesc() {
@@ -153,6 +158,22 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfoQueryWrapper.le("create_time",minus);
         //最后将查询的结果返回
         return orderInfoMapper.selectList(orderInfoQueryWrapper);
+    }
+
+    /**
+     * 根据订单号获取订单信息
+     * @param orderNo 订单号
+     * @return OrderInfo 订单信息
+     */
+    @Override
+    public OrderInfo getOrderByOrderNo(String orderNo) {
+        //根据订单号获取订单信息
+        QueryWrapper<OrderInfo> orderInfoQueryWrapper = new QueryWrapper<>();
+        //进行条件匹配，订单号为orderNo的信息
+        orderInfoQueryWrapper.eq("order_no",orderNo);
+        OrderInfo orderInfo = orderInfoMapper.selectOne(orderInfoQueryWrapper);
+
+        return orderInfo;
     }
 
 

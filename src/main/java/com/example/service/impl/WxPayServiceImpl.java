@@ -1,7 +1,7 @@
 package com.example.service.impl;
-
 import com.example.config.WxPayConfig;
 import com.example.entity.OrderInfo;
+import com.example.entity.RefundInfo;
 import com.example.enums.OrderStatus;
 import com.example.enums.StatusCode;
 import com.example.enums.wxpay.WxApiType;
@@ -9,6 +9,7 @@ import com.example.enums.wxpay.WxNotifyType;
 import com.example.enums.wxpay.WxTradeState;
 import com.example.service.OrderInfoService;
 import com.example.service.PaymentInfoService;
+import com.example.service.RefundInfoService;
 import com.example.service.WxPayService;
 import com.google.gson.Gson;
 import com.mysql.cj.util.StringUtils;
@@ -22,7 +23,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +54,9 @@ public class WxPayServiceImpl implements WxPayService {
 
     @Resource
     private PaymentInfoService paymentInfoService;
+
+    @Resource
+    private RefundInfoService refundInfoService;
 
     /**
      * 创建一把可重入锁，用于数据的所定
@@ -305,6 +309,138 @@ public class WxPayServiceImpl implements WxPayService {
 
         }
 
+
+    }
+
+    /**
+     * 创建退款单的信息，使用了事务的操作，一旦出现异常，便回滚事务
+     * @param orderNo the order no 订单号
+     * @param reason  the reason 退款原因
+     * @throws IOException IO异常
+     */
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void refund(String orderNo, String reason) throws IOException {
+        log.info("创建退款单记录....");
+        //根据订单号和原因创建退款单
+       RefundInfo refundInfo= refundInfoService.createRefundByOrderNo(orderNo,reason);
+
+       log.info("调用退款API");
+
+       //调用统一下单API
+        String url = wxPayConfig.getDomain().concat(WxApiType.DOMESTIC_REFUNDS.getType());
+        HttpPost httpPost = new HttpPost(url);
+
+        //组装退款的请求体参数
+        Gson gson = new Gson();
+        Map<String, Object> paramMap=new HashMap<String, Object>();
+        //组装退款请求参数
+        //订单编号
+        paramMap.put("out_trade_no",orderNo);
+        //退款单编号
+        paramMap.put("out_refund_no",refundInfo.getRefundNo());
+        //退款原因
+        paramMap.put("reason",reason);
+        //退款通知地址
+        paramMap.put("notify_url",wxPayConfig.getNotifyDomain().concat(WxNotifyType.REFUND_NOTIFY.getType()));
+
+        //设置数量相关
+        Map<String, Object> amountMap = new HashMap<>();
+        //退款金额
+        amountMap.put("refund",refundInfo.getRefund());
+        //原订单金额
+        amountMap.put("total",refundInfo.getTotalFee());
+        //退款币种
+        amountMap.put("currency","CNY");
+
+        paramMap.put("amount",amountMap);
+
+
+        //将组装好的参数设置为json字符串
+        String jsonParams = gson.toJson(paramMap);
+        log.info("请求参数----》{}",jsonParams);
+
+        //将这些json形式的参数转换成字符串实体并设置相关的请求头等信息
+        StringEntity stringEntity = new StringEntity(jsonParams,"UTF-8");
+        //设置请求报文内的格式
+        stringEntity.setContentType("application/json");
+        //将请求报文放入请求对象中
+        httpPost.setEntity(stringEntity);
+        //请求对象设置请求头(设置响应报文格式)
+        httpPost.setHeader("Accept","application/json");
+
+        //执行请求
+        CloseableHttpResponse response = httpClient.execute(httpPost);
+
+        //之后解析响应
+
+        try {
+
+            //解析响应结果(获取响应主体内容)
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            //获取响应状态码
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode==StatusCode.SUCCESS.getCode()){
+                log.info("请求处理成功，退款返回结果:"+bodyAsString);
+            }else if (statusCode==StatusCode.SUCCESS_NOT_BODY.getCode()){
+                log.info("请求处理成功......");
+            }else {
+                throw new RemoteException("退款异常，对应的退款码为："+statusCode+",退款的请求体为："+bodyAsString);
+            }
+
+            //更新订单状态(设置状态为退款中)
+            orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.REFUND_PROCESSING);
+
+            //更新退款单
+            refundInfoService.updateRefund(bodyAsString);
+
+        }finally {
+            response.close();
+        }
+    }
+
+    /**
+     * 查询退款结果
+     * @param refundNo 退款编号
+     * @return 返回退款结果
+     * @throws IOException 可能出现IO异常
+      */
+    @Override
+    public String queryRefund(String refundNo) throws IOException {
+        log.info("查询退款接口调用--》{}",refundNo);
+        //获取查询单笔退款的地址(后面的占位符使用退款单编号替换)
+        String url=String.format(WxApiType.DOMESTIC_REFUNDS_QUERY.getType(),refundNo);
+        //将地址进行组装
+        url=wxPayConfig.getDomain().concat(url);
+
+        //创建get请求，从微信端获取退款信息
+        HttpGet httpGet = new HttpGet(url);
+        //设置请求头
+        httpGet.setHeader("Accept","application/json");
+        //执行查询请求
+        CloseableHttpResponse response = httpClient.execute(httpGet);
+
+        //对请求响应进行解析
+        try {
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            //获取请求响应码
+            int statusCode = response.getStatusLine().getStatusCode();
+
+            if (statusCode==StatusCode.SUCCESS.getCode()){
+                log.info("查询退款成功。退款的返回结果是："+bodyAsString);
+            }else if (statusCode==StatusCode.SUCCESS_NOT_BODY.getCode()){
+                log.info("查询退款成功.....");
+            }else {
+                throw new RuntimeException("查询退款结果异常，状态码为："+statusCode+",对应的查询返回结果为："+bodyAsString);
+
+            }
+            return bodyAsString;
+
+
+        }finally {
+            response.close();
+        }
 
     }
 
