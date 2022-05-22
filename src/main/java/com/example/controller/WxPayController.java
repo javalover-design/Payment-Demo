@@ -174,4 +174,89 @@ public class WxPayController {
         String result=wxPayService.queryRefund(refundNo);
         return Results.returnOk().returnData("result",result).setMessage("退款成功");
     }
+
+    /**
+     * 退款结果通知，
+     * 如果退款成功，微信会将退款结果通知给商户
+     * @param request
+     * @param response
+     * @return
+     */
+    @ApiOperation("微信退款通知")
+    @PostMapping("/refunds/notify")
+    public String refundNotify(HttpServletRequest request,HttpServletResponse response){
+        log.info("退款通知执行........");
+        Gson gson = new Gson();
+        //创建应答对象
+        Map<String, String> map=new HashMap<>();
+        try {
+            //处理通知参数（从请求中获取）
+            String body = HttpUtils.readData(request);
+            //将json字符串转成map形式
+            Map bodyMap = gson.fromJson(body, HashMap.class);
+            //获取请求的id
+            String requestId=  (String)bodyMap.get("id");
+            log.info("支付通知的id---》{}",requestId);
+
+            //签名验证
+            WechatPay2ValidatorForRequest wechatPay2ValidatorForRequest
+                    = new WechatPay2ValidatorForRequest(verifier, body, requestId);
+
+            //进行验证
+            if (!wechatPay2ValidatorForRequest.validate(request)){
+                    //不为真则验证签名失败
+                log.error("验证签名失败........");
+
+                //进行失败的应答
+                response.setStatus(StatusCode.FAILED_VERIFY_SIGNATURE.getCode());
+                map.put("code","ERROR");
+                map.put("message","通知验证签名失败");
+                return gson.toJson(map);
+
+            }
+
+            log.info("验证签名成功......");
+            //处理退款单
+            wxPayService.processRefund(bodyMap);
+
+            //成功应答
+            response.setStatus(StatusCode.SUCCESS.getCode());
+            map.put("code","SUCCESS");
+            map.put("message","成功");
+            return gson.toJson(map);
+
+        } catch (IOException | GeneralSecurityException e) {
+           throw new RuntimeException("");
+        } finally {
+
+        }
+
+
+    }
+
+    /**
+     * 获取账单的url下载地址
+     * @param billDate 订单日期
+     * @param type 订单类型
+     * @return 返回订单的url下载地址
+     */
+    @ApiOperation("获取账单url")
+    @GetMapping("/querybill/{billDate}/{type}")
+    public Results queryTradeBill(@PathVariable String billDate,@PathVariable String type) throws IOException {
+        log.info("获取账单的url.....");
+       String downloadUrl= wxPayService.queryBill(billDate,type);
+        return Results.returnOk().setMessage("获取账单url成功").returnData("downloadUrl",downloadUrl);
+
+    }
+
+
+    @ApiOperation("下载订单")
+    @GetMapping("/downloadbill/{billDate}/{type}")
+    public Results downloadBill(@PathVariable String billDate,@PathVariable String type) throws IOException {
+        log.info("下载账单.......");
+        String result=wxPayService.downloadBill(billDate,type);
+        return Results.returnOk().returnData("result",result);
+    }
+
+
 }

@@ -445,6 +445,140 @@ public class WxPayServiceImpl implements WxPayService {
     }
 
     /**
+     * 处理退款单信息
+     * @param bodyMap the body map
+     * @throws GeneralSecurityException
+     */
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void processRefund(Map<String, Object> bodyMap) throws GeneralSecurityException {
+        log.info("退款单.....");
+
+        //解密报文
+        String plainText = decryptFromResource(bodyMap);
+        //获取明文信息后将明文转换成map
+        Gson gson = new Gson();
+        Map plainTextMap = gson.fromJson(plainText, HashMap.class);
+        //得到订单号
+        String orderNo = (String)plainTextMap.get("out_trade_no");
+
+        if (lock.tryLock()){
+            try {
+                //此时获取订单状态
+                String orderStatus = orderInfoService.getOrderStatus(orderNo);
+                //如果订单不是退款中，则不再需要处理，直接返回，说明可能已经退款过了
+                if (!OrderStatus.REFUND_PROCESSING.getType().equals(orderStatus)){
+                    return;
+                }
+
+                //更新订单状态
+                orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.REFUND_SUCCESS);
+                //更新退款单
+                refundInfoService.updateRefund(plainText);
+
+            }finally {
+                //需要主动释放锁
+                lock.unlock();
+            }
+        }
+
+
+    }
+
+    /**
+     * 查询订单的url地址
+     * @param billDate the bill date 订单日期
+     * @param type     the type 订单类型
+     * @return 返回订单的url地址
+     * @throws IOException 可能出现IO异常
+     */
+    @Override
+    public String queryBill(String billDate, String type) throws IOException {
+        log.warn("申请账单接口调用---》{}",billDate);
+        String url="";
+        if ("tradebill".equals(type)){
+            url=WxApiType.TRADE_BILLS.getType();
+        }else if ("fundflowbill".equals(type)){
+            url=WxApiType.FUND_FLOW_BILLS.getType();
+        }else {
+            throw new RuntimeException("不支持的账单类型");
+        }
+
+        url=wxPayConfig.getDomain().concat(url).concat("?bill_date=").concat(billDate);
+
+        //创建远程请求对象
+        HttpGet httpGet = new HttpGet(url);
+        httpGet.addHeader("Accept","application/json");
+        //发送请求得到响应
+        CloseableHttpResponse response = httpClient.execute(httpGet);
+
+        //对响应进行处理
+        try {
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            //获取响应码
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode==StatusCode.SUCCESS.getCode()){
+                log.info("请求成功，返回申请账单结果==》{}",bodyAsString);
+            }else if (statusCode==StatusCode.SUCCESS_NOT_BODY.getCode()) {
+                log.info("请求成功");
+            }else {
+                throw new RuntimeException("账单返回异常,对应的状态码为："+statusCode+"，对应的账单主体为："+bodyAsString);
+            }
+
+            //获取账单的下载地址
+            Gson gson = new Gson();
+            Map<String, String> downloadMap = gson.fromJson(bodyAsString, HashMap.class);
+            String downloadUrl = downloadMap.get("download_url");
+            return downloadUrl;
+
+        }finally {
+            response.close();
+        }
+
+    }
+
+    /**
+     *  调用下载账单API
+     * @param billDate 订单日期
+     * @param type 订单类型
+     * @return 返回下载订单的请求体
+     * @throws IOException 可能抛出IO异常
+     */
+    @Override
+    public String downloadBill(String billDate, String type) throws IOException {
+        log.info("下载账单接口调用，{}，{}",billDate,type);
+        //获取账单的url地址
+        String downloadUrl = queryBill(billDate, type);
+        //创建远程请求下载的对象
+        HttpGet httpGet = new HttpGet(downloadUrl);
+        httpGet.addHeader("Accept","application/json");
+
+        //使用客户单执行请求，得到响应
+        CloseableHttpResponse response = httpClient.execute(httpGet);
+
+        //对响应进行处理
+        try {
+            String bodyAsString = EntityUtils.toString(response.getEntity());
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode==StatusCode.SUCCESS.getCode()){
+                log.info("请求成功，返回下载账单处理结果-》{}",bodyAsString);
+
+            }else if (statusCode==StatusCode.SUCCESS_NOT_BODY.getCode()){
+                log.info("请求成功");
+            }else{
+                throw new RemoteException("请求下载失败，对应的响应码为："+statusCode+",对应的响应体为："+bodyAsString);
+            }
+
+            return bodyAsString;
+
+        }finally {
+            response.close();
+        }
+
+    }
+
+    /**
      * 关单接口的调用
      * @param orderNo
      */

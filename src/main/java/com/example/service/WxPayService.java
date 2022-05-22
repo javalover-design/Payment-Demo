@@ -71,10 +71,30 @@ public interface WxPayService {
     /**
      * Query refund string.
      * 查询退款结果
+     *
      * @param refundNo the refund no
      * @return the string
      * @throws IOException the io exception
      */
     String queryRefund(String refundNo) throws IOException;
 
+    /**
+     * Process refund.
+     *  处理退款订单
+     * @param bodyMap the body map
+     * @throws GeneralSecurityException the general security exception
+     */
+    void processRefund(Map<String, Object> bodyMap) throws GeneralSecurityException;
+
+    /**
+     * Query bill string.
+     *查询账单，返回url地址
+     * @param billDate the bill date
+     * @param type     the type
+     * @return the string
+     * @throws IOException the io exception
+     */
+    String queryBill(String billDate, String type) throws IOException;
+
+    String downloadBill(String billDate, String type) throws IOException;
 }

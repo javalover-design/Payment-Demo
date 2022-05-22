@@ -100,7 +100,13 @@ public enum StatusCode {
     /**
      * 帐号异常
      */
-    ACCOUNTERROR(403,"账号异常");
+    ACCOUNTERROR(403,"账号异常"),
+
+    /**
+     * 验证签名失败
+     */
+    FAILED_VERIFY_SIGNATURE(500,"验证签名失败");
+
     private final Integer code;
     private final String description;
 
