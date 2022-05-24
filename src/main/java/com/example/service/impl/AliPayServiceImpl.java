@@ -9,6 +9,7 @@ import com.example.entity.OrderInfo;
 import com.example.service.AliPayService;
 import com.example.service.OrderInfoService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,8 @@ public class AliPayServiceImpl implements AliPayService {
     @Resource
     private  AlipayClient alipayClient;
 
+    @Resource
+    private  Environment config;
     /**
      * 根据订单号创建订单并发起支付请求获取平台响应返回到前端
      * @param productId the product id
@@ -44,6 +47,8 @@ public class AliPayServiceImpl implements AliPayService {
             //调用支付宝接口
             //创建支付宝请求对象
             AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
+            //设置请求处理完成后的跳转的地址
+            request.setReturnUrl(config.getProperty("alipay.return-url"));
             //创建具体请求参数对象，用于组装请求信息
             JSONObject bizContent = new JSONObject();
             //设置商户订单号
