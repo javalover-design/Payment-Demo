@@ -49,6 +49,8 @@ public class AliPayServiceImpl implements AliPayService {
             AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
             //设置请求处理完成后的跳转的地址
             request.setReturnUrl(config.getProperty("alipay.return-url"));
+            //设置支付宝异步通知的通知地址（需要进行内网穿透）
+            request.setNotifyUrl(config.getProperty("alipay.notify-url"));
             //创建具体请求参数对象，用于组装请求信息
             JSONObject bizContent = new JSONObject();
             //设置商户订单号
