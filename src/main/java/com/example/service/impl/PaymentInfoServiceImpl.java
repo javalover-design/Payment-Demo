@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,6 +66,37 @@ public class PaymentInfoServiceImpl extends ServiceImpl<PaymentInfoMapper, Payme
         //同时将微信返回的支付信息作为一个整体存入数据库中
         paymentInfo.setContent(plainText);
         //最后将信息插入数据库中
+        paymentInfoMapper.insert(paymentInfo);
+
+
+    }
+
+    /**
+     * 记录支付宝的支付日志
+     * @param params the params 支付通知参数
+     */
+    @Override
+    public void createPaymentInfoForAliPay(Map<String, String> params) {
+        log.info("记录支付宝支付日志.....");
+        //创建支付信息对象
+        PaymentInfo paymentInfo = new PaymentInfo();
+        paymentInfo.setOrderNo(params.get("out_trade_no"));
+        paymentInfo.setPaymentType(PayType.ALIPAY.getType());
+        //设置业务编号(支付宝对应的是trade_no)
+        paymentInfo.setTransactionId(params.get("trade_no"));
+        //设置支付的场景
+        paymentInfo.setTradeType("电脑网站支付");
+        //设置交易状态
+        paymentInfo.setTradeState(params.get("trade_status"));
+        //设置交易金额，此处依旧需要转换(支付宝端对应的是元，数据库中对应分)
+        int totalAmount=new BigDecimal(params.get("total_amount")).multiply(new BigDecimal("100")).intValue();
+        paymentInfo.setPayerTotal(totalAmount);
+
+        //之后设置备注信息，需要将平台传入的map集合信息转成字符串类型存入数据库
+        Gson gson = new Gson();
+        String content = gson.toJson(params, HashMap.class);
+        paymentInfo.setContent(content);
+        //将信息插入数据库中
         paymentInfoMapper.insert(paymentInfo);
 
 

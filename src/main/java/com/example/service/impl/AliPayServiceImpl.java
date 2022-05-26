@@ -6,8 +6,10 @@ import com.alipay.api.AlipayClient;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.example.entity.OrderInfo;
+import com.example.enums.OrderStatus;
 import com.example.service.AliPayService;
 import com.example.service.OrderInfoService;
+import com.example.service.PaymentInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.Map;
 
 /**
  * @author lambda
@@ -31,6 +34,9 @@ public class AliPayServiceImpl implements AliPayService {
 
     @Resource
     private  Environment config;
+
+    @Resource
+    private PaymentInfoService paymentInfoService;
     /**
      * 根据订单号创建订单并发起支付请求获取平台响应返回到前端
      * @param productId the product id
@@ -80,5 +86,21 @@ public class AliPayServiceImpl implements AliPayService {
         }catch (AlipayApiException e){
             throw new RuntimeException("创建支付交易失败.....");
         }
+    }
+
+    /**
+     * 商户系统订单处理
+     * @param params 支付宝平台异步通知传递的参数
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void processOrder(Map<String, String> params) {
+        log.info("处理订单.......");
+        //获取传递信息中的订单号
+        String orderNo = params.get("out_trade_no");
+        //更新订单状态
+        orderInfoService.updateStatusByOrderNo(orderNo, OrderStatus.SUCCESS);
+        //记录支付日志
+        paymentInfoService.createPaymentInfoForAliPay(params);
     }
 }

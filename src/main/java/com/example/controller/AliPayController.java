@@ -61,8 +61,6 @@ public class AliPayController {
     @PostMapping("/trade/notify")
     public String tradeNotify(@RequestParam Map<String,String> params)  {
         try {
-
-
             //@RequestParam表示将参数从请求中取出放入map集合中
             log.info("支付通知正在执行");
             log.info("通知参数----》{}", params);
@@ -140,6 +138,7 @@ public class AliPayController {
             }
             //以上4步校验成功后设置为success，之后返回结果，商户可以自身进行后续的处理
             //商户处理自身业务
+            aliPayService.processOrder(params);
 
             result = "success";
 
