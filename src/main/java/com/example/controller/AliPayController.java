@@ -154,5 +154,19 @@ public class AliPayController {
     }
 
 
+    /**
+     * 用户取消订单接口
+     * @param orderNo 订单号
+     * @return 返回取消结果
+     */
+    @ApiOperation("用户取消订单")
+    @PostMapping("/trade/close/{orderNo}")
+    public Results cancel(@PathVariable String orderNo){
+        log.info("用户取消订单......");
+        //处理取消订单业务
+        aliPayService.cancelOrder(orderNo);
+        //返回订单取消信息
+        return Results.returnOk().setMessage("订单已取消");
+    }
 
 }

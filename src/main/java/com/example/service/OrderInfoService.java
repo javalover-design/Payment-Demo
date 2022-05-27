@@ -20,7 +20,7 @@ public interface OrderInfoService  extends IService<OrderInfo> {
      * @param productId the product id
      * @return the order info
      */
-    OrderInfo createOrderByProductId(Long productId);
+    OrderInfo createOrderByProductId(Long productId,String paymentType);
 
     /**
      * Save code url.

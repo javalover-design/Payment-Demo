@@ -40,10 +40,10 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      * @return 订单信息
      */
     @Override
-    public OrderInfo createOrderByProductId(Long productId) {
+    public OrderInfo createOrderByProductId(Long productId,String paymentType) {
 
         //查找已存在，但是并未支付的订单信息
-        OrderInfo orderInfoNoPay = getNoPayOrderByProductId(productId);
+        OrderInfo orderInfoNoPay = getNoPayOrderByProductId(productId,paymentType);
         if (orderInfoNoPay!=null){
             return orderInfoNoPay;
         }
@@ -58,6 +58,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfo.setTotalFee(product.getPrice());
         orderInfo.setProductId(productId);
         orderInfo.setOrderStatus(OrderStatus.NOTPAY.getType());
+        orderInfo.setPaymentType(paymentType);
 
         //将订单信息存入数据库
         orderInfoMapper.insert(orderInfo);
@@ -182,13 +183,13 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      * @param productId
      * @return
      */
-    private  OrderInfo getNoPayOrderByProductId(Long productId){
+    private  OrderInfo getNoPayOrderByProductId(Long productId,String paymentType){
         //使用MyBatis-plus的查询器
         QueryWrapper<OrderInfo> orderInfoQueryWrapper = new QueryWrapper<>();
         //设置判断条件，id和类型信息
          orderInfoQueryWrapper.eq("product_id", productId);
          orderInfoQueryWrapper.eq("order_status",OrderStatus.NOTPAY.getType());
-
+        orderInfoQueryWrapper.eq("payment_type",paymentType);
          //使用自带的selectOne方法判断是否同时满足条件
         OrderInfo orderInfo = orderInfoMapper.selectOne(orderInfoQueryWrapper);
         return orderInfo;

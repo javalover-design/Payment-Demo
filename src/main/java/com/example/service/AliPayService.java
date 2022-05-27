@@ -19,9 +19,17 @@ public interface AliPayService {
 
     /**
      * Process order.
-     *订单处理方法
+     * 订单处理方法
+     *
      * @param params the params
      */
     void processOrder(Map<String, String> params);
 
+    /**
+     * Cancel order.
+     * 根据订单号取消订单
+     *
+     * @param orderNo the order no
+     */
+    void cancelOrder(String orderNo);
 }

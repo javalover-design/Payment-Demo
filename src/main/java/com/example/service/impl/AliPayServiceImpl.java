@@ -3,10 +3,13 @@ package com.example.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
+import com.alipay.api.request.AlipayTradeCloseRequest;
 import com.alipay.api.request.AlipayTradePagePayRequest;
+import com.alipay.api.response.AlipayTradeCloseResponse;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.example.entity.OrderInfo;
 import com.example.enums.OrderStatus;
+import com.example.enums.PayType;
 import com.example.service.AliPayService;
 import com.example.service.OrderInfoService;
 import com.example.service.PaymentInfoService;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author lambda
@@ -37,6 +41,11 @@ public class AliPayServiceImpl implements AliPayService {
 
     @Resource
     private PaymentInfoService paymentInfoService;
+
+    /**
+     * 添加可重入锁对象，进行数据的并发控制
+     */
+    private final ReentrantLock lock=new ReentrantLock();
     /**
      * 根据订单号创建订单并发起支付请求获取平台响应返回到前端
      * @param productId the product id
@@ -48,7 +57,7 @@ public class AliPayServiceImpl implements AliPayService {
         try {
             log.info("生成订单....");
             //调用orderInfoService对象在数据库中创建订单
-            OrderInfo orderInfo = orderInfoService.createOrderByProductId(productId);
+            OrderInfo orderInfo = orderInfoService.createOrderByProductId(productId, PayType.ALIPAY.getType());
 
             //调用支付宝接口
             //创建支付宝请求对象
@@ -98,9 +107,81 @@ public class AliPayServiceImpl implements AliPayService {
         log.info("处理订单.......");
         //获取传递信息中的订单号
         String orderNo = params.get("out_trade_no");
-        //更新订单状态
-        orderInfoService.updateStatusByOrderNo(orderNo, OrderStatus.SUCCESS);
-        //记录支付日志
-        paymentInfoService.createPaymentInfoForAliPay(params);
+
+
+        /**
+         * 在对业务数据进行状态检查之前需要利用数据锁进行处理，进行并发控制
+         * 避免数据重入造成混乱，
+         * 此处使用尝试获取锁的判断，如果没有获取锁，此时则返回false，直接进行下面的操作
+         * 不会等待锁释放，造成阻塞。
+         */
+        if (lock.tryLock()) {
+            try {
+                //接口调用幂等性问题：在更新订单状态，记录支付日志之前过滤重复通知（无论接口被调用多少次，以下只执行一次）
+                //首先获取订单状态
+                String orderStatus = orderInfoService.getOrderStatus(orderNo);
+                if (!OrderStatus.NOTPAY.getType().equals(orderStatus)){
+                    //如果订单状态不是未支付，则直接返回，不需要任何处理
+                    return;
+                }
+                //更新订单状态
+                orderInfoService.updateStatusByOrderNo(orderNo, OrderStatus.SUCCESS);
+                //记录支付日志
+                paymentInfoService.createPaymentInfoForAliPay(params);
+            }finally {
+                //必须要主动释放锁
+                lock.unlock();
+            }
+        }
+
+    }
+
+    /**
+     * 用户取消订单方法编写
+     * @param orderNo 订单号
+     */
+    @Override
+    public void cancelOrder(String orderNo) {
+
+        //调用支付统一收单交易关闭接口
+        this.closeOrder(orderNo);
+
+        //更新用户的订单状态
+        orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.CANCEL);
+
+    }
+
+    /**
+     * 关单接口调用
+     * @param orderNo 订单号
+     */
+    private void closeOrder(String orderNo) {
+        try {
+
+
+            log.info("关单接口调用，订单号---》{}", orderNo);
+            //创建关单请求
+            AlipayTradeCloseRequest request = new AlipayTradeCloseRequest();
+            //创建请求参数对象
+            JSONObject bizContent = new JSONObject();
+            bizContent.put("out_trade_no", orderNo);
+            //将对应的参数设置到请求对象中
+            request.setBizContent(bizContent.toString());
+            //使用支付客户端对象执行请求
+            AlipayTradeCloseResponse response = alipayClient.execute(request);
+            //判断请求是否成功
+            if (response.isSuccess()){
+                //打印响应信息主体
+                log.info("调用成功====》{}",response.getBody());
+            }else {
+                log.info("调用失败====》{}，返回码"+response.getCode()+",返回描述为："+response.getMsg());
+               // throw new RuntimeException("关单接口调用失败....."); 让其正常结束
+            }
+
+        } catch (AlipayApiException e) {
+            throw new RuntimeException("关单接口调用出现异常");
+        }
+
+
     }
 }

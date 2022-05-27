@@ -39,6 +39,10 @@ public class OrderInfo extends BaseEntity{
      * 订单状态
      */
     private String orderStatus;
+    /**
+     * 支付类型
+     */
+    private String paymentType;
 
 
 

@@ -3,6 +3,7 @@ import com.example.config.WxPayConfig;
 import com.example.entity.OrderInfo;
 import com.example.entity.RefundInfo;
 import com.example.enums.OrderStatus;
+import com.example.enums.PayType;
 import com.example.enums.StatusCode;
 import com.example.enums.wxpay.WxApiType;
 import com.example.enums.wxpay.WxNotifyType;
@@ -81,7 +82,7 @@ public class WxPayServiceImpl implements WxPayService {
         //orderInfo.setTotalFee(1);
         //orderInfo.setProductId(productId);
         //orderInfo.setOrderStatus(OrderStatus.NOTPAY.getType());
-        OrderInfo orderInfo = orderInfoService.createOrderByProductId(productId);
+        OrderInfo orderInfo = orderInfoService.createOrderByProductId(productId, PayType.WXPAY.getType());
 
         //此处进行判断，如果codeUrl与订单信息都不为空，则直接将原来的信息返回即可
         String codeUrl = orderInfo.getCodeUrl();
