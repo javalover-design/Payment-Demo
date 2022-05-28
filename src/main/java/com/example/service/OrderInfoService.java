@@ -17,7 +17,8 @@ public interface OrderInfoService  extends IService<OrderInfo> {
      * Create order by product id order info.
      * 根据产品的id生成对应的订单信息
      *
-     * @param productId the product id
+     * @param productId   the product id
+     * @param paymentType the payment type
      * @return the order info
      */
     OrderInfo createOrderByProductId(Long productId,String paymentType);
@@ -61,14 +62,16 @@ public interface OrderInfoService  extends IService<OrderInfo> {
      * Gets no pay order by duration.
      * 查询超过指定时间未支付的订单
      *
-     * @param minutes the
+     * @param minutes     the
+     * @param paymentType the payment type
      * @return the no pay order by duration
      */
-    List<OrderInfo> getNoPayOrderByDuration(int minutes);
+    List<OrderInfo> getNoPayOrderByDuration(int minutes,String paymentType);
 
     /**
      * Gets order by order no.
-     *根据订单号获取订单
+     * 根据订单号获取订单
+     *
      * @param orderNo the order no
      * @return the order by order no
      */

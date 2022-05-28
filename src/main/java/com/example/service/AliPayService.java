@@ -32,4 +32,13 @@ public interface AliPayService {
      * @param orderNo the order no
      */
     void cancelOrder(String orderNo);
+
+    /**
+     * Query order string.
+     * 商户向支付宝端查询订单结果
+     *
+     * @param orderNo the order no
+     * @return the string
+     */
+    String queryOrder(String orderNo);
 }

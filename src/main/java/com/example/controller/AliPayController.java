@@ -169,4 +169,19 @@ public class AliPayController {
         return Results.returnOk().setMessage("订单已取消");
     }
 
+    /**
+     *商户查询订单接口
+     * 商户根据订单号查询相应的订单信息
+     * @param orderNo 订单号
+     * @return
+     */
+    @ApiOperation("商户查询订单")
+    @GetMapping("/trade/query/{orderNo}")
+    public Results queryOrder(@PathVariable String orderNo){
+            log.info("商户查询订单====》{}",orderNo);
+            //调用支付宝支付服务的查询订单方法
+        String result=aliPayService.queryOrder(orderNo);
+        return Results.returnOk().setMessage("查询订单信息").returnData("result",result);
+    }
+
 }

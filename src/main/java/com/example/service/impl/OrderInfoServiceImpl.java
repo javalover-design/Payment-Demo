@@ -147,7 +147,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
      * @return
      */
     @Override
-    public List<OrderInfo> getNoPayOrderByDuration(int minutes) {
+    public List<OrderInfo> getNoPayOrderByDuration(int minutes,String paymentType) {
         //创建一个时间实例，减去超时时间的时间实例，与订单的创建时间相比
         Instant minus = Instant.now().minus(Duration.ofMinutes(minutes));
 
@@ -157,6 +157,7 @@ public class OrderInfoServiceImpl extends ServiceImpl<OrderInfoMapper, OrderInfo
         orderInfoQueryWrapper.eq("order_status",OrderStatus.NOTPAY.getType());
         //如果当前时间减去超时时间的时间值比创建时间晚，则说明已经超时了
         orderInfoQueryWrapper.le("create_time",minus);
+        orderInfoQueryWrapper.eq("payment_type",paymentType);
         //最后将查询的结果返回
         return orderInfoMapper.selectList(orderInfoQueryWrapper);
     }
