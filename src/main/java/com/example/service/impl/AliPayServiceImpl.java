@@ -10,11 +10,14 @@ import com.alipay.api.response.AlipayTradeCloseResponse;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
 import com.example.entity.OrderInfo;
+import com.example.enums.AliPay.AliPayTradeState;
 import com.example.enums.OrderStatus;
 import com.example.enums.PayType;
 import com.example.service.AliPayService;
 import com.example.service.OrderInfoService;
 import com.example.service.PaymentInfoService;
+import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -154,7 +158,7 @@ public class AliPayServiceImpl implements AliPayService {
     }
 
     /**
-     * 商户查询订单信息
+     * 商户向支付宝端查询订单信息
      * @param orderNo 订单号
      * @return 返回订单查询结果，如果返回为null，说明支付宝端没有创建订单
      */
@@ -185,6 +189,53 @@ public class AliPayServiceImpl implements AliPayService {
         } catch (AlipayApiException e) {
             throw new RuntimeException("查询订单接口调用失败.....");
         }
+    }
+
+    /**
+     * 根据订单号查询支付宝端的订单状态
+     * 如果订单已经支付，则更新商户端订单状态，并记录支付日志
+     * 如果订单没有支付，则调用关单接口，并更新商户端订单状态
+     * 如果订单未创建，则直接更新商户端的订单状态即可
+     * @param orderNo 订单号
+     */
+    @Override
+    public void checkOrderStatus(String orderNo) {
+        log.warn("根据订单号核实订单状态---》{}",orderNo);
+        //商户端向支付宝端查询订单信息
+        String result = this.queryOrder(orderNo);
+        //1.订单未创建状态
+        if (result==null){
+            log.warn("核实订单未创建---》{}",orderNo);
+            //更新本地订单状态(设置关闭)
+            orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.CLOSED);
+        }
+
+        //2.如果订单未支付，则调用关单接口并更新商户端订单状态
+        Gson gson = new Gson();
+        //由于result的值中也是属于键值对，String-{xxx：xxx，xxxx：xxxx，xxx：xxxx}
+        Map<String, LinkedTreeMap> resultMap = gson.fromJson(result, HashMap.class);
+        //参见统一收单线下交易查询中的响应示例
+        LinkedTreeMap alipayTradeQueryResponse = resultMap.get("alipay_trade_query_response");
+        //从map中获取订单状态(trade_status)
+        String tradeStatus = (String)alipayTradeQueryResponse.get("trade_status");
+        if (AliPayTradeState.NOTPAY.getType().equals(tradeStatus)){
+            //判断如果订单未支付
+            log.warn("核实订单未支付---》{}",orderNo);
+            //订单未支付，则调用关单接口
+            this.closeOrder(orderNo);
+            //更新商户端状态
+            orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.CLOSED);
+        }
+
+        //3.如果订单已经支付，则更新商户端的订单状态，并记录支付日志
+        if (AliPayTradeState.SUCCESS.getType().equals(tradeStatus)){
+            //判断订单已经支付
+            log.warn("核实订单已支付---》{}",orderNo);
+            orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.SUCCESS);
+            paymentInfoService.createPaymentInfoForAliPay(alipayTradeQueryResponse);
+        }
+
+
     }
 
     /**

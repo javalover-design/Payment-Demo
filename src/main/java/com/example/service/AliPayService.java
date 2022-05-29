@@ -41,4 +41,11 @@ public interface AliPayService {
      * @return the string
      */
     String queryOrder(String orderNo);
+
+    /**
+     * Check order status.
+     *检查订单状态
+     * @param orderNo the order no
+     */
+    void checkOrderStatus(String orderNo);
 }

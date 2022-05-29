@@ -1,6 +1,7 @@
 package com.example.task;
 import com.example.entity.OrderInfo;
 import com.example.enums.PayType;
+import com.example.service.AliPayService;
 import com.example.service.OrderInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,6 +16,8 @@ import java.util.List;
 public class AliPayTask {
     @Resource
     private OrderInfoService orderInfoService;
+    @Resource
+    private AliPayService aliPayService;
 
     /**
      * 每30秒查询一次订单信息，查询创建1分钟并且未支付的订单
@@ -29,7 +32,11 @@ public class AliPayTask {
         for (OrderInfo orderInfo : noPayOrderList) {
             String orderNo = orderInfo.getOrderNo();
             log.info("超时1分钟未支付的订单---》{}",orderNo);
+            //核实订单状态，调用支付宝端查单接口
+            aliPayService.checkOrderStatus(orderNo);
         }
+
+
 
     }
 }
