@@ -22,8 +22,18 @@ public interface RefundInfoService extends IService<RefundInfo> {
 
     /**
      * Update refund.
-     *更新退款信息
+     * 更新退款信息
+     *
      * @param bodyAsString the body as string
      */
     void updateRefund(String bodyAsString);
+
+    /**
+     * Update refund for ali pay.
+     *
+     * @param refundNo     the refund no
+     * @param content      the content
+     * @param refundStatus the refund status
+     */
+    void updateRefundForAliPay(String refundNo, String content, String refundStatus);
 }

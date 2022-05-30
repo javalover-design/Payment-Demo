@@ -18,9 +18,14 @@ public enum AliPayTradeState {
      */
     CLOSED("TRADE_SUCCESS"),
     /**
-     * 退款
+     * 退款成功
      */
-    REFUND("REFUND");
+    REFUND_SUCCESS("REFUND_SUCCESS"),
+
+    /**
+     * 退款失败
+     */
+    REFUND_ERROR("REFUND_ERROR");
 
 
     private final String type;

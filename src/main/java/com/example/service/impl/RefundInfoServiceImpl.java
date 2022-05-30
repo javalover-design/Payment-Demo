@@ -90,4 +90,29 @@ public class RefundInfoServiceImpl extends ServiceImpl<RefundInfoMapper, RefundI
         refundInfoMapper.update(refundInfo,refundInfoQueryWrapper);
 
     }
+
+    /**
+     *
+     * @param refundNo 退款单号
+     * @param content 退款信息主体
+     * @param refundStatus 退款结果类型
+     */
+    @Override
+    public void updateRefundForAliPay(String refundNo, String content, String refundStatus) {
+        //根据退款单号修改退款单
+        QueryWrapper<RefundInfo> refundInfoQueryWrapper = new QueryWrapper<>();
+        refundInfoQueryWrapper.eq("refund_no",refundNo);
+
+        //设置要修改的字段(新建一个退款单)
+        RefundInfo refundInfo = new RefundInfo();
+        //refundInfo.setRefundNo(refundNo);
+        refundInfo.setRefundStatus(refundStatus);
+        refundInfo.setContentReturn(content);
+
+        //执行更新操作
+        refundInfoMapper.update(refundInfo,refundInfoQueryWrapper);
+
+
+
+    }
 }

@@ -184,4 +184,20 @@ public class AliPayController {
         return Results.returnOk().setMessage("查询订单信息").returnData("result",result);
     }
 
+    /**
+     * 商户退款接口
+     * @param orderNo 退款单号
+     * @param reason 退款原因
+     * @return
+     */
+    @ApiOperation("商户退款接口")
+    @PostMapping("/trade/refund/{orderNo}/{reason}")
+    public Results refunds(@PathVariable String orderNo,@PathVariable String reason){
+        log.info("申请退款....");
+        //调用服务层退款方法
+        aliPayService.refund(orderNo,reason);
+        return Results.returnOk();
+
+    }
+
 }

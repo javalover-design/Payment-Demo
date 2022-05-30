@@ -6,16 +6,20 @@ import com.alipay.api.AlipayClient;
 import com.alipay.api.request.AlipayTradeCloseRequest;
 import com.alipay.api.request.AlipayTradePagePayRequest;
 import com.alipay.api.request.AlipayTradeQueryRequest;
+import com.alipay.api.request.AlipayTradeRefundRequest;
 import com.alipay.api.response.AlipayTradeCloseResponse;
 import com.alipay.api.response.AlipayTradePagePayResponse;
 import com.alipay.api.response.AlipayTradeQueryResponse;
+import com.alipay.api.response.AlipayTradeRefundResponse;
 import com.example.entity.OrderInfo;
+import com.example.entity.RefundInfo;
 import com.example.enums.AliPay.AliPayTradeState;
 import com.example.enums.OrderStatus;
 import com.example.enums.PayType;
 import com.example.service.AliPayService;
 import com.example.service.OrderInfoService;
 import com.example.service.PaymentInfoService;
+import com.example.service.RefundInfoService;
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +51,9 @@ public class AliPayServiceImpl implements AliPayService {
 
     @Resource
     private PaymentInfoService paymentInfoService;
+
+    @Resource
+    private RefundInfoService refundInfoService;
 
     /**
      * 添加可重入锁对象，进行数据的并发控制
@@ -198,6 +205,7 @@ public class AliPayServiceImpl implements AliPayService {
      * 如果订单未创建，则直接更新商户端的订单状态即可
      * @param orderNo 订单号
      */
+
     @Override
     public void checkOrderStatus(String orderNo) {
         log.warn("根据订单号核实订单状态---》{}",orderNo);
@@ -236,6 +244,53 @@ public class AliPayServiceImpl implements AliPayService {
         }
 
 
+    }
+
+    /**
+     * 商户发起退款请求
+     * @param orderNo 退款单号
+     * @param reason 原因
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void refund(String orderNo, String reason) {
+        try {
+            log.info("调用退款API");
+            //调用退款信息方法创建退款信息
+            RefundInfo refundInfo = refundInfoService.createRefundByOrderNo(orderNo, reason);
+            //创建统一交易退款请求
+            AlipayTradeRefundRequest request=new AlipayTradeRefundRequest();
+            //组装当前业务交易的请求参数
+            JSONObject bizContent = new JSONObject();
+            bizContent.put("out_trade_no",orderNo);
+            //设置退款单金额(需要除以100),分转化成元
+            BigDecimal refund = new BigDecimal(refundInfo.getRefund().toString()).divide(new BigDecimal("100"));
+            bizContent.put("refund_amount",refund);
+            bizContent.put("refund_reason",reason);
+            //将参数设置到请求中
+            request.setBizContent(bizContent.toString());
+            AlipayTradeRefundResponse response = alipayClient.execute(request);
+            if (response.isSuccess()){
+                log.info("退款交易成功，对应信息为："+response.getBody());
+                //更新订单状态
+                orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.REFUND_SUCCESS);
+                //更新退款单
+                refundInfoService.updateRefundForAliPay( //表示退款成功
+                        refundInfo.getRefundNo(),response.getBody(),AliPayTradeState.REFUND_SUCCESS.getType());
+            }else{
+                log.warn("退款交易失败，对应状态码为："+response.getCode()+",返回体为："+response.getBody());
+                //更新订单状态
+                orderInfoService.updateStatusByOrderNo(orderNo,OrderStatus.REFUND_ABNORMAL);
+                //更新退款单
+                refundInfoService.updateRefundForAliPay(
+                        refundInfo.getRefundNo(),response.getBody(),AliPayTradeState.REFUND_ERROR.getType()
+                );
+            }
+
+
+        } catch (AlipayApiException e) {
+            throw new RuntimeException("退款交易失败.....");
+        }
     }
 
     /**
