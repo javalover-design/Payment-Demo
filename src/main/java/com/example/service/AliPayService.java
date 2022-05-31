@@ -53,8 +53,27 @@ public interface AliPayService {
     /**
      * Refund.
      * 退款操作
+     *
      * @param orderNo the order no
      * @param reason  the reason
      */
     void refund(String orderNo, String reason);
+
+    /**
+     * Query refund string.
+     * 查询退款结果
+     *
+     * @param orderNo the order no
+     * @return the string
+     */
+    String queryRefund(String orderNo);
+
+    /**
+     * Query bill string.
+     *  查询订单下载地址
+     * @param billDate the bill date
+     * @param type     the type
+     * @return the string
+     */
+    String queryBill(String billDate, String type);
 }

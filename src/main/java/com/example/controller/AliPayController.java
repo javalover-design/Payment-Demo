@@ -200,4 +200,39 @@ public class AliPayController {
 
     }
 
+    /**
+     * 退款结果查询（商户向支付宝端查询）
+     * @param orderNo 订单号
+     * @return 返回查询的结果
+     */
+    @ApiOperation("查询退款")
+    @GetMapping("/trade/fastpay/refund/{orderNo}")
+    public Results queryRefunds(@PathVariable("orderNo") String orderNo){
+        log.info("查询退款.......");
+        //执行退款查询并接收返回的字符串结果
+        String result=aliPayService.queryRefund(orderNo);
+        return Results.returnOk().setMessage("查询成功").returnData("result",result);
+    }
+
+
+    /**
+     * 根据账单类型和日期获取账单的url地址
+     * @param billDate 账单的日期
+     * @param type 账单的类型
+     * @return 返回账单的url地址
+     */
+    @ApiOperation("获取账单url")
+    @GetMapping("/bill/downloadurl/query/{billDate}/{type}")
+    public Results queryTradeBill(@PathVariable String billDate,
+                                  @PathVariable String type){
+
+        log.info("获取账单的url地址");
+        //获取账单的url地址
+        String downloadUrl=aliPayService.queryBill(billDate,type);
+
+        return Results.returnOk().setMessage("获取账单地址成功")
+                .returnData("downloadUrl",downloadUrl);
+
+    }
+
 }

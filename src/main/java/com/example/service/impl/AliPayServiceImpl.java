@@ -3,14 +3,8 @@ package com.example.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
-import com.alipay.api.request.AlipayTradeCloseRequest;
-import com.alipay.api.request.AlipayTradePagePayRequest;
-import com.alipay.api.request.AlipayTradeQueryRequest;
-import com.alipay.api.request.AlipayTradeRefundRequest;
-import com.alipay.api.response.AlipayTradeCloseResponse;
-import com.alipay.api.response.AlipayTradePagePayResponse;
-import com.alipay.api.response.AlipayTradeQueryResponse;
-import com.alipay.api.response.AlipayTradeRefundResponse;
+import com.alipay.api.request.*;
+import com.alipay.api.response.*;
 import com.example.entity.OrderInfo;
 import com.example.entity.RefundInfo;
 import com.example.enums.AliPay.AliPayTradeState;
@@ -291,6 +285,83 @@ public class AliPayServiceImpl implements AliPayService {
         } catch (AlipayApiException e) {
             throw new RuntimeException("退款交易失败.....");
         }
+    }
+
+    /**
+     * 根据订单号查询退款
+     * @param orderNo the order no 订单号
+     * @return 返回退款查询的结果
+     */
+    @Override
+    public String queryRefund(String orderNo) {
+
+        try {
+            log.info("查询退款接口调用---》{}",orderNo);
+            //定义一个查询退款的请求对象
+            AlipayTradeFastpayRefundQueryRequest request = new AlipayTradeFastpayRefundQueryRequest();
+            //组装请求参数
+            JSONObject bizContent = new JSONObject();
+            bizContent.put("out_trade_no",orderNo);
+            //out_request_no表示退款请求号，如果退款的时候没有传入，则以订单号作为退款请求号。
+            bizContent.put("out_request_no",orderNo);
+            //组装到请求中
+            request.setBizContent(bizContent.toString());
+            //执行请求
+            AlipayTradeFastpayRefundQueryResponse response = alipayClient.execute(request);
+            if (response.isSuccess()){
+                log.info("调用成功，返回结果---》{}",response.getBody());
+                return response.getBody();
+            }else {
+                log.info("调用失败，对应的响应码为："+response.getCode()+",对应的响应内容为："+response.getBody());
+                //如果调用失败，返回空
+                return null;
+            }
+
+        } catch (AlipayApiException e) {
+            throw new RuntimeException("退款查询请求执行失败");
+        }
+
+    }
+
+    /**
+     * 获取账单地址实现
+     * @param billDate the bill date 账单日期
+     * @param type     the type 账单类型
+     * @return
+     */
+    @Override
+    public String queryBill(String billDate, String type) {
+       try {
+           //设置查询账单请求对象
+      AlipayDataDataserviceBillDownloadurlQueryRequest request = new AlipayDataDataserviceBillDownloadurlQueryRequest();
+            //组装请求参数
+           JSONObject bizContent = new JSONObject();
+           bizContent.put("bill_type",type);
+           bizContent.put("bill_date",billDate);
+           //将请求参数设置到请求中
+           request.setBizContent(bizContent.toString());
+           //执行请求
+           AlipayDataDataserviceBillDownloadurlQueryResponse response = alipayClient.execute(request);
+           if (response.isSuccess()){
+               log.info("查询账单url地址请求成功---》{}",response.getBody());
+               //获取账单的下载地址
+               Gson gson = new Gson();
+               Map<String,LinkedTreeMap> resultMap=gson.fromJson(response.getBody(),HashMap.class);
+               //获取交易账单地址
+               LinkedTreeMap billDownLoadUrl= resultMap.get("alipay_data_dataservice_bill_downloadurl_query_response");
+               String billDownloadUrl = (String)billDownLoadUrl.get("bill_download_url");
+               //返回url地址
+               return billDownloadUrl;
+
+           }else {
+               log.info("查询账单地址失败。对应的响应码为："+response.getCode()+",对应的响应体为："+response.getBody());
+                throw new RuntimeException("查询账单地址失败....");
+           }
+
+       } catch (AlipayApiException e) {
+           throw new RuntimeException("查询账单请求执行失败.......");
+       }
+
     }
 
     /**
